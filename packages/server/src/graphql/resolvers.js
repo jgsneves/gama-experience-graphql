@@ -12,6 +12,10 @@ const resolvers = {
     Query: {
         ...clientResolvers.Query,
         ...demandResolvers.Query,
+    },
+
+    Mutation: {
+        ...clientResolvers.Mutation,
     }
 }
 

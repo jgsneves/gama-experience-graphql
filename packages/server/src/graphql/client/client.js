@@ -40,8 +40,17 @@ export const clientTypeDefs = gql`
     email: String!
   }
 
+  input UpdateClientInput {
+    id: ID!
+    name: String!
+    email: String!
+    disabled: Boolean!
+  }
+
   extend type Mutation {
-    createClient(input: CreateClientInput!): Client! 
+    createClient(input: CreateClientInput!): Client!
+    updateClient(input: UpdateClientInput!): Client!
+    deleteClient(id: ID!): Client!
   }
 `;
 
@@ -49,7 +58,9 @@ export const clientResolvers = {
   Query: {
     client: async (_, { id }) => {
       const clients = await clientRepository.read();
-      return clients.find(client => client.id === id);
+      const client = clients.find(client => client.id === id);
+      if (!client) throw new Error('Cannot find current user!');
+      return client;
     },
     clients: async (_, args) => {
       const {
@@ -122,6 +133,44 @@ export const clientResolvers = {
       };
 
       await clientRepository.write([...clients, client]);
+
+      return client;
+    },
+
+    updateClient: async (_, { input }) => {
+      const clients = await clientRepository.read();
+
+      const currentClient = clients.find(client => client.id === input.id);
+
+      if (!currentClient) throw new Error('No client with this id');
+      
+      const updatedClient = {
+        ...currentClient,
+        name: input.name,
+        email: input.email,
+        disabled: input.disabled,
+      };
+
+      const updatedClients = clients.map(client => {
+        if (client.id === updatedClient.id) return updatedClient;
+        return client;
+      })
+
+      await clientRepository.write(updatedClients);
+
+      return updatedClient;
+    },
+
+    deleteClient: async (_, { id }) => {
+      const clients = await clientRepository.read();
+
+      const client = clients.find(client => client.id === id);
+
+      if (!client) throw new Error('Cant find client with the current id.')
+
+      const filteredClients = clients.filter(item => item.id !== id);
+
+      await clientRepository.write(filteredClients);
 
       return client;
     }
